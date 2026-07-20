@@ -1,0 +1,25 @@
+services:
+  backend:
+    build: ./backend
+    container_name: url-check-backend
+    environment:
+      PORT: 3000
+      # Максимум одновременных HEAD-запросов на одно задание
+      JOB_CONCURRENCY: 5
+      # Искусственная задержка перед сохранением результата (мс)
+      JOB_DELAY_MIN_MS: 0
+      JOB_DELAY_MAX_MS: 10000
+      # Таймаут одного HEAD-запроса (мс)
+      JOB_REQUEST_TIMEOUT_MS: 10000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: url-check-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped

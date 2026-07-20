@@ -1,0 +1,18 @@
+# Зависимости
+node_modules/
+
+# Сборки
+dist/
+coverage/
+
+# Логи
+*.log
+npm-debug.log*
+
+# Окружение
+.env
+
+# ОС / редакторы
+.DS_Store
+.idea/
+.vscode/
