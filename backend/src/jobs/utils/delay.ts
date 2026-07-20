@@ -1,33 +1,9 @@
-/** Промис-обёртка над setTimeout. Поддерживает отмену через AbortSignal. */
-export function delay(ms: number, signal?: AbortSignal): Promise<void> {
+/** Промис-обёртка над setTimeout. */
+export function delay(ms: number): Promise<void> {
   if (ms <= 0) {
     return Promise.resolve();
   }
-
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, ms);
-
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      cleanup();
-      resolve();
-    };
-
-    const cleanup = (): void => {
-      signal?.removeEventListener('abort', onAbort);
-    };
-
-    if (signal) {
-      if (signal.aborted) {
-        onAbort();
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-  });
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Случайное целое число миллисекунд в диапазоне [min, max]. */

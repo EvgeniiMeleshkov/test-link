@@ -14,7 +14,7 @@ export class CreateJobDto {
   })
   @IsString({ each: true, message: 'Каждый URL должен быть строкой' })
   @IsUrl(
-    { require_protocol: true, protocols: ['http', 'https'] },
+    { require_protocol: true, require_tld: false, protocols: ['http', 'https'] },
     { each: true, message: 'Каждый элемент должен быть корректным http/https URL' },
   )
   urls!: string[];

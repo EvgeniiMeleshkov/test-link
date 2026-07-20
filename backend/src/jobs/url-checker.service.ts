@@ -13,15 +13,10 @@ export interface UrlCheckResult {
  */
 @Injectable()
 export class UrlCheckerService {
-  constructor(
-    @Inject(PROCESSING_CONFIG) private readonly config: ProcessingConfig,
-  ) {}
+  constructor(@Inject(PROCESSING_CONFIG) private readonly config: ProcessingConfig) {}
 
-  async check(url: string, externalSignal?: AbortSignal): Promise<UrlCheckResult> {
-    const timeout = AbortSignal.timeout(this.config.requestTimeoutMs);
-    const signal = externalSignal
-      ? AbortSignal.any([externalSignal, timeout])
-      : timeout;
+  async check(url: string): Promise<UrlCheckResult> {
+    const signal = AbortSignal.timeout(this.config.requestTimeoutMs);
 
     try {
       const response = await fetch(url, { method: 'HEAD', signal, redirect: 'follow' });

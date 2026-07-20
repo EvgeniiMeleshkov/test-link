@@ -16,7 +16,8 @@ export interface JobsState {
   createStatus: RequestStatus;
   createError: string | null;
 
-  cancelling: boolean;
+  /** id задания, которое сейчас отменяется (или null). */
+  cancellingId: string | null;
 }
 
 const initialState: JobsState = {
@@ -28,7 +29,7 @@ const initialState: JobsState = {
   activeError: null,
   createStatus: 'idle',
   createError: null,
-  cancelling: false,
+  cancellingId: null,
 };
 
 export const fetchJobs = createAsyncThunk('jobs/fetchList', () => jobsApi.list());
@@ -101,6 +102,16 @@ const jobsSlice = createSlice({
         if (action.payload.id !== state.activeJobId) {
           return;
         }
+        // Защита от гонки ответов по ОДНОМУ заданию: параллельные запросы могут
+        // прийти не по порядку. `processed` монотонно не убывает за жизнь задания,
+        // поэтому более старый ответ (с меньшим processed) не должен перезаписывать
+        // более свежий и «откатывать» прогресс назад.
+        if (
+          state.activeJob &&
+          action.payload.stats.processed < state.activeJob.stats.processed
+        ) {
+          return;
+        }
         state.activeJob = action.payload;
         state.activeError = null;
       })
@@ -112,17 +123,21 @@ const jobsSlice = createSlice({
       })
 
       // ---- отмена ----
-      .addCase(cancelJob.pending, (state) => {
-        state.cancelling = true;
+      .addCase(cancelJob.pending, (state, action) => {
+        state.cancellingId = action.meta.arg;
       })
       .addCase(cancelJob.fulfilled, (state, action) => {
-        state.cancelling = false;
+        if (state.cancellingId === action.payload.id) {
+          state.cancellingId = null;
+        }
         if (action.payload.id === state.activeJobId) {
           state.activeJob = action.payload;
         }
       })
       .addCase(cancelJob.rejected, (state, action) => {
-        state.cancelling = false;
+        if (state.cancellingId === action.meta.arg) {
+          state.cancellingId = null;
+        }
         if (action.meta.arg === state.activeJobId) {
           state.activeError = action.error.message ?? 'Не удалось отменить задание';
         }

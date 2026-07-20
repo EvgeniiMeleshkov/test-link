@@ -11,7 +11,7 @@ export function JobDetails() {
   const activeJobId = useAppSelector((state) => state.jobs.activeJobId);
   const job = useAppSelector((state) => state.jobs.activeJob);
   const activeError = useAppSelector((state) => state.jobs.activeError);
-  const cancelling = useAppSelector((state) => state.jobs.cancelling);
+  const cancellingId = useAppSelector((state) => state.jobs.cancellingId);
 
   if (!activeJobId) {
     return (
@@ -30,6 +30,7 @@ export function JobDetails() {
   }
 
   const canCancel = !isTerminal(job.status);
+  const cancelling = cancellingId === job.id;
 
   return (
     <section className="card job-details">

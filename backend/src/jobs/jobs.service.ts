@@ -2,12 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PROCESSING_CONFIG, ProcessingConfig } from './config/processing.config';
 import { CreateJobDto } from './dto/create-job.dto';
-import {
-  JobDetailsResponse,
-  JobSummaryResponse,
-  toDetails,
-  toSummary,
-} from './dto/job-response';
+import { JobDetailsResponse, JobSummaryResponse, toDetails, toSummary } from './dto/job-response';
 import { Job, JobStatus, TERMINAL_JOB_STATUSES, UrlCheck, UrlStatus } from './domain/job.types';
 import { JobsRepository } from './jobs.repository';
 import { UrlCheckerService } from './url-checker.service';
@@ -36,8 +31,14 @@ export class JobsService {
     const controller = new AbortController();
     this.controllers.set(job.id, controller);
 
-    // Обработка запускается в фоне; ответ клиенту не ждёт её завершения.
-    const task = this.process(job, controller).finally(() => this.processing.delete(job.id));
+    // Старт обработки откладываем на следующий тик событийного цикла: обработчик
+    // запроса возвращает ответ, не запуская HEAD-запросы синхронно внутри себя —
+    // фоновая проверка стартует уже после ответа клиенту.
+    const task = new Promise<void>((resolve) => {
+      setImmediate(() => {
+        void this.process(job, controller).then(resolve, resolve);
+      });
+    }).finally(() => this.processing.delete(job.id));
     this.processing.set(job.id, task);
 
     return { jobId: job.id };
@@ -115,7 +116,10 @@ export class JobsService {
       }
     } catch (error) {
       this.logger.error(`Задание ${job.id} завершилось с ошибкой`, error as Error);
-      job.status = JobStatus.Failed;
+      // Не перетираем уже терминальный статус (например, cancelled).
+      if (job.status === JobStatus.InProgress) {
+        job.status = JobStatus.Failed;
+      }
     } finally {
       this.controllers.delete(job.id);
       this.markPendingAsCancelled(job);

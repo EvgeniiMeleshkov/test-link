@@ -4,8 +4,9 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    // Content-Type задаётся по умолчанию, но может быть переопределён вызывающим.
+    headers: { 'Content-Type': 'application/json', ...init?.headers },
   });
 
   if (!response.ok) {

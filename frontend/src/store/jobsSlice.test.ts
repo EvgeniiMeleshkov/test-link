@@ -19,7 +19,7 @@ function baseState(overrides: Partial<JobsState> = {}): JobsState {
     activeError: null,
     createStatus: 'idle',
     createError: null,
-    cancelling: false,
+    cancellingId: null,
     ...overrides,
   };
 }
@@ -105,6 +105,26 @@ describe('jobsSlice', () => {
     };
     const next = reducer(state, action as never);
     expect(next.activeJob?.status).toBe('cancelled');
-    expect(next.cancelling).toBe(false);
+    expect(next.cancellingId).toBeNull();
+  });
+
+  it('не откатывает прогресс: устаревший ответ по тому же jobId с меньшим processed игнорируется', () => {
+    const fresh: JobDetails = {
+      ...details('current'),
+      stats: { total: 3, pending: 0, inProgress: 0, success: 2, error: 0, cancelled: 0, processed: 2 },
+    };
+    const state = baseState({ activeJobId: 'current', activeJob: fresh });
+    const stale = {
+      ...details('current'),
+      stats: { total: 3, pending: 1, inProgress: 1, success: 1, error: 0, cancelled: 0, processed: 1 },
+    };
+    const action = {
+      type: fetchJobDetails.fulfilled.type,
+      payload: stale,
+      meta: { arg: 'current', requestId: 'x', requestStatus: 'fulfilled' },
+    };
+    const next = reducer(state, action as never);
+    // Более старый ответ (processed=1) не должен затирать свежий (processed=2).
+    expect(next.activeJob?.stats.processed).toBe(2);
   });
 });
