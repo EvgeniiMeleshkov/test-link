@@ -3,6 +3,7 @@ import { CreateJobForm } from './components/CreateJobForm';
 import { JobDetails } from './components/JobDetails';
 import { JobList } from './components/JobList';
 import { useActiveJobPolling } from './hooks/useActiveJobPolling';
+import { useJobsListPolling } from './hooks/useJobsListPolling';
 import { fetchJobs } from './store/jobsSlice';
 import { useAppDispatch } from './store/hooks';
 
@@ -16,6 +17,9 @@ export function App() {
 
   // Опрос активного задания, пока оно не завершится.
   useActiveJobPolling();
+
+  // Живое обновление статистики в списке, пока есть незавершённые задания.
+  useJobsListPolling();
 
   return (
     <div className="app">
